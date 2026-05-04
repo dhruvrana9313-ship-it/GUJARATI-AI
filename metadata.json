@@ -1,0 +1,6 @@
+{
+  "name": "Gujarati AI Translator",
+  "description": "Professional language translator and transcriber focused on high-quality Gujarati output. Supports text, voice, and file uploads with historical tracking.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["AI Translation", "Voice Transcription", "Audio/Video Transcription"]
+}
