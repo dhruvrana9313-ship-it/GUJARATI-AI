@@ -26,7 +26,9 @@ import {
   Wifi,
   WifiOff,
   Package,
-  ArrowRight
+  ArrowRight,
+  Settings,
+  Key
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateText, transcribeMedia, synthesizeSpeech } from './services/geminiService';
@@ -69,6 +71,15 @@ export default function App() {
   const [installedPacks, setInstalledPacks] = useState<string[]>([]);
   const [downloadingPack, setDownloadingPack] = useState<string | null>(null);
 
+  // API Key State
+  const [customApiKey, setCustomApiKey] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('custom_gemini_api_key') || '';
+    }
+    return '';
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -81,6 +92,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('translation_history', JSON.stringify(history));
   }, [history]);
+
+  // Sync API Key to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('custom_gemini_api_key', customApiKey);
+  }, [customApiKey]);
 
   // Sync Theme
   useEffect(() => {
@@ -113,7 +129,7 @@ export default function App() {
     if (!isOnline) {
       performTranslation(() => localTranslate(input));
     } else {
-      performTranslation(() => translateText(input));
+      performTranslation(() => translateText(input, customApiKey));
     }
   };
 
@@ -158,7 +174,7 @@ export default function App() {
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
           const base64data = (reader.result as string).split(',')[1];
-          performTranslation(() => transcribeMedia(base64data, 'audio/webm'));
+          performTranslation(() => transcribeMedia(base64data, 'audio/webm', customApiKey));
         };
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -191,7 +207,7 @@ export default function App() {
     reader.readAsDataURL(file);
     reader.onloadend = () => {
       const base64data = (reader.result as string).split(',')[1];
-      performTranslation(() => transcribeMedia(base64data, file.type));
+      performTranslation(() => transcribeMedia(base64data, file.type, customApiKey));
     };
   };
 
@@ -243,7 +259,7 @@ export default function App() {
     
     setIsSpeaking(true);
     try {
-      const base64Audio = await synthesizeSpeech(text);
+      const base64Audio = await synthesizeSpeech(text, customApiKey);
       
       // Decode base64 to binary
       const binaryString = atob(base64Audio);
@@ -316,6 +332,7 @@ export default function App() {
              <h1 className="font-bold text-xl tracking-tighter">Gujarati <span className="text-indigo-600 dark:text-indigo-400 font-black">AI</span></h1>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-white/20 rounded-full"><Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /></button>
             <button onClick={() => setIsPacksOpen(!isPacksOpen)} className="p-2 bg-white/20 rounded-full"><Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /></button>
             <button onClick={() => setIsHistoryOpen(!isHistoryOpen)} className="p-2 bg-white/20 rounded-full"><History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /></button>
             <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 bg-white/20 rounded-full">{isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
@@ -414,6 +431,12 @@ export default function App() {
                 {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
                 {isOnline ? 'Online' : 'Offline Mode'}
               </div>
+              <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-10 h-10 rounded-full bg-white/60 dark:bg-white/10 flex items-center justify-center shadow-sm border border-white/80 dark:border-white/5 hover:scale-105 transition-all text-neutral-600 dark:text-neutral-300"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
               <button 
                 onClick={() => setIsPacksOpen(true)}
                 className="w-10 h-10 rounded-full bg-white/60 dark:bg-white/10 flex items-center justify-center shadow-sm border border-white/80 dark:border-white/5 hover:scale-105 transition-all text-neutral-600 dark:text-neutral-300"
@@ -584,6 +607,54 @@ export default function App() {
       </div>
 
       <AnimatePresence>
+        {isSettingsOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSettingsOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md" />
+             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm bg-white dark:bg-neutral-900 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col p-8">
+               <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-black flex items-center gap-2"><Settings className="w-5 h-5" /> Settings</h2>
+                  <button onClick={() => setIsSettingsOpen(false)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+               </div>
+               
+               <div className="space-y-6">
+                 <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-2">Gemini API Key</label>
+                    <div className="relative">
+                      <Key className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                      <input 
+                        type="password"
+                        placeholder="Enter custom API key..."
+                        value={customApiKey}
+                        onChange={(e) => setCustomApiKey(e.target.value)}
+                        className="w-full bg-neutral-100 dark:bg-neutral-800 border-none rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-2 ring-indigo-500 outline-none transition-all"
+                      />
+                    </div>
+                    <p className="mt-2 text-[10px] text-neutral-400 leading-relaxed font-medium">
+                      Leave empty to use the default AI Studio key. Custom keys are stored only in your browser.
+                    </p>
+                 </div>
+                 
+                 <div className="pt-4 flex flex-col gap-3">
+                   <button 
+                    onClick={() => setIsSettingsOpen(false)}
+                    className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg shadow-indigo-600/20"
+                   >
+                     Save Configuration
+                   </button>
+                   {customApiKey && (
+                     <button 
+                      onClick={() => setCustomApiKey('')}
+                      className="w-full py-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-bold rounded-2xl active:scale-95 transition-all"
+                     >
+                       Reset to Default
+                     </button>
+                   )}
+                 </div>
+               </div>
+             </motion.div>
+          </div>
+        )}
+
         {isPacksOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPacksOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md" />

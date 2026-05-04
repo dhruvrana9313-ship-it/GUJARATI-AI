@@ -1,14 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { TranslationResult } from "../types";
 
-// Always initialize lazily within the call if needed, but here we can at top level if env is certain
-const genAI = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || "" 
-});
+const getGenAI = (apiKey?: string) => {
+  return new GoogleGenAI({ 
+    apiKey: apiKey || process.env.GEMINI_API_KEY || "" 
+  });
+};
 
-export const translateText = async (text: string): Promise<TranslationResult> => {
+export const translateText = async (text: string, customKey?: string): Promise<TranslationResult> => {
   if (!text.trim()) throw new Error("No text provided");
 
+  const genAI = getGenAI(customKey);
   const model = "gemini-3-flash-preview";
   const prompt = `Translate the following text into Gujarati. 
   Detect the source language automatically.
@@ -40,7 +42,8 @@ export const translateText = async (text: string): Promise<TranslationResult> =>
   }
 };
 
-export const transcribeMedia = async (fileData: string, mimeType: string): Promise<TranslationResult> => {
+export const transcribeMedia = async (fileData: string, mimeType: string, customKey?: string): Promise<TranslationResult> => {
+  const genAI = getGenAI(customKey);
   const model = "gemini-3-flash-preview";
   const prompt = `Transcribe the audio/video content accurately and translate it into Gujarati.
   Detect the source language of the audio automatically.
@@ -82,7 +85,8 @@ export const transcribeMedia = async (fileData: string, mimeType: string): Promi
   }
 };
 
-export const synthesizeSpeech = async (text: string): Promise<string> => {
+export const synthesizeSpeech = async (text: string, customKey?: string): Promise<string> => {
+  const genAI = getGenAI(customKey);
   const model = "gemini-3.1-flash-tts-preview";
   
   try {
