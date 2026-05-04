@@ -551,9 +551,17 @@ export default function App() {
                     )}
 
                     {status === TranslationStatus.ERROR && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-red-500">
-                        <AlertCircle className="w-10 h-10 mx-auto mb-2" />
-                        <p className="text-sm font-bold uppercase tracking-widest">{error}</p>
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center px-6">
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500 shadow-lg shadow-red-500/20" />
+                        <p className="text-sm font-black uppercase tracking-widest text-red-600 mb-6 drop-shadow-sm">{error}</p>
+                        {error?.includes("API KEY") && (
+                          <button 
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="px-8 py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-600/20 active:scale-95 transition-all text-xs uppercase tracking-widest"
+                          >
+                            Configure API Key
+                          </button>
+                        )}
                       </motion.div>
                     )}
 

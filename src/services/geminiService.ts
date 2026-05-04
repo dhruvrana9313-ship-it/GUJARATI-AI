@@ -1,10 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 import { TranslationResult } from "../types";
 
-const getGenAI = (apiKey?: string) => {
-  return new GoogleGenAI({ 
-    apiKey: apiKey || process.env.GEMINI_API_KEY || "" 
-  });
+// Always initialize lazily within the call if needed, but here we can at top level if env is certain
+const getGenAI = (customKey?: string) => {
+  const key = customKey || process.env.GEMINI_API_KEY || "";
+  
+  if (!key || key === "MY_GEMINI_API_KEY") {
+    throw new Error("API KEY IS MISSING. PLEASE PROVIDE A VALID GEMINI API KEY IN SETTINGS.");
+  }
+
+  return new GoogleGenAI({ apiKey: key });
 };
 
 export const translateText = async (text: string, customKey?: string): Promise<TranslationResult> => {
